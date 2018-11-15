@@ -52,6 +52,7 @@ class CiscoACIControllerHTTPClient(object):
     def get_tenant(self, tenant_name):
         """
 
+        :param tenant_name:
         :return:
         """
         for tenant in aci.Tenant.get(session=self._session):
@@ -60,9 +61,24 @@ class CiscoACIControllerHTTPClient(object):
 
         raise Exception("Unable to find Tenant with name '{}'".format(tenant_name))
 
+    def get_app_profile(self, app_profile_name, tenant=None):
+        """
+
+        :param app_profile_name:
+        :param tenant:
+        :return:
+        """
+        for app_profile in aci.AppProfile.get(session=self._session, tenant=tenant):
+            if app_profile_name == app_profile.name:
+                return app_profile
+
+        raise Exception("Unable to find Application Profile with name '{}'".format(app_profile))
+
     def get_epg(self, epg_name, tenant=None):
         """
 
+        :param epg_name:
+        :param tenant:
         :return:
         """
         for epg in aci.EPG.get(session=self._session, tenant=tenant):
@@ -70,6 +86,19 @@ class CiscoACIControllerHTTPClient(object):
                 return epg
 
         raise Exception("Unable to find EPG with name '{}'".format(epg_name))
+
+    def get_bd(self, bd_name, tenant=None):
+        """
+
+        :param bd_name:
+        :param tenant:
+        :return:
+        """
+        for bd in aci.BridgeDomain.get(session=self._session, tenant=tenant):
+            if bd_name == bd.name:
+                return bd
+
+        raise Exception("Unable to find Bridge Domain with name '{}'".format(bd_name))
 
     def get_leaf_ports(self):
         """Get leaf ports in the next format: pod->node-><fex>->slot->port
@@ -277,3 +306,38 @@ class CiscoACIControllerHTTPClient(object):
         if not resp.ok:
             raise Exception('Could not push tenant configuration to APIC. Error response: {}'.format(resp.content))
 
+    def remove_app_profile(self, tenant_name, app_profile_name):
+        """
+
+        :param tenant_name:
+        :param app_profile_name:
+        :return:
+        """
+        tenant = self.get_tenant(tenant_name)
+        app_profile = self.get_app_profile(app_profile_name=app_profile_name, tenant=tenant)
+
+        app_profile.mark_as_deleted()
+
+        resp = tenant.push_to_apic(self._session)
+        self._logger.info("Pushed Tenant data {}".format(tenant.get_json()))
+
+        if not resp.ok:
+            raise Exception('Could not push tenant configuration to APIC. Error response: {}'.format(resp.content))
+
+    def remove_bridge_domain(self, tenant_name, bd_name):
+        """
+
+        :param tenant_name:
+        :param bd_name:
+        :return:
+        """
+        tenant = self.get_tenant(tenant_name)
+        bd = self.get_bd(bd_name=bd_name, tenant=tenant)
+
+        bd.mark_as_deleted()
+
+        resp = tenant.push_to_apic(self._session)
+        self._logger.info("Pushed Tenant data {}".format(tenant.get_json()))
+
+        if not resp.ok:
+            raise Exception('Could not push tenant configuration to APIC. Error response: {}'.format(resp.content))
